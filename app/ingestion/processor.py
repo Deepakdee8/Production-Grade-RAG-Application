@@ -12,19 +12,23 @@ from app.services.retrieval.embedding import embed_texts, get_embedding_dim
 from app.ingestion.loaders.pdf import parse_pdf
 from app.ingestion.loaders.html import parse_html
 from app.ingestion.loaders.text import parse_text
+from app.ingestion.loaders.office import parse_office
 from app.ingestion.chunking.splitter import chunk_text
 
+print("-- Initialzing Logfire --")
 logfire.configure(service_name="enterprise-ingestion-service")
+print("-- Initialze logfire completed --")
 
 # Local folder where parsed + chunked JSON metadata is saved (replaces GCS processed bucket)
 PROCESSED_DATA_DIR = "processed_data"
 
 # Initialize Qdrant Client
+print("-- Initialzing Qdrant Client --")
 qdrant_client = QdrantClient(
     url=settings.QDRANT_URL,
     api_key=settings.QDRANT_API_KEY,
 )
-
+print("-- Initializ Qdrant Client successfully --")
 
 def save_processed_locally(data: dict, source_type: str, filename: str) -> str:
     """Save parsed chunk metadata as JSON in processed_data/<source_type>/."""
@@ -38,7 +42,7 @@ def save_processed_locally(data: dict, source_type: str, filename: str) -> str:
 
 def process_file(file_path: str, filename: str, source_type: str):
     """Parse → chunk → save locally → embed → index in Qdrant."""
-    with logfire.span("Processing File", file=filename, source=source_type):
+    with logfire.span(f"Processing File -> {filename}", file=filename, source=source_type):
         try:
             # 1. Extract text based on file extension
             ext = filename.lower().rsplit(".", 1)[-1]
@@ -49,7 +53,6 @@ def process_file(file_path: str, filename: str, source_type: str):
             elif ext == "txt":
                 full_text = parse_text(file_path)
             elif ext in ("docx", "pptx"):
-                from app.ingestion.loaders.office import parse_office
                 full_text = parse_office(file_path)
             else:
                 logfire.warning(f"Skipping unsupported file type: {filename}")
@@ -101,11 +104,12 @@ def process_file(file_path: str, filename: str, source_type: str):
 
 def process_directory(dir_path: str, source_type: str):
     """Process every file in a directory."""
-    with logfire.span("Scanning Directory", path=dir_path, source=source_type):
+    with logfire.span("-- Scanning Directory --", path=dir_path, source=source_type):
         files = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
         logfire.info(f"Found {len(files)} files in {dir_path}.")
         for filename in files:
             process_file(os.path.join(dir_path, filename), filename, source_type)
+    logfire.info("-- Completed Processing of files --")
 
 
 def run_universal_ingestion(base_dir: str, explicit_source_type: str = None, wipe: bool = False):
@@ -136,7 +140,6 @@ def run_universal_ingestion(base_dir: str, explicit_source_type: str = None, wip
                 f"Created collection '{settings.QDRANT_COLLECTION}' "
                 f"({dim}-dim, Cosine)."
             )
-
         # Route to sub-folders or treat the whole dir as one source
         subdirs = [
             d for d in os.listdir(base_dir)
@@ -169,6 +172,7 @@ if __name__ == "__main__":
     # Usage:
     #   python -m app.ingestion.processor DATA --wipe
     #   python -m app.ingestion.processor DATA/true_data true
+    logfire.info("Data ingestion triggered \n")
     wipe_requested = "--wipe" in sys.argv
     clean_args = [a for a in sys.argv if a != "--wipe"]
 

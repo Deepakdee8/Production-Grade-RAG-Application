@@ -21,7 +21,7 @@ def _probe_gemini():
             google_api_key=settings.GEMINI_API_KEY,
         )
         model.embed_query("probe")
-        logfire.info("Gemini embeddings ready (gemini-embedding-2-preview, 3072-dim).")
+        logfire.trace("Gemini embeddings ready (gemini-embedding-2-preview, 3072-dim).")
         return model
     except Exception as e:
         logfire.warning(f"Gemini probe failed: {e}. Will use sentence-transformers fallback.")
@@ -69,7 +69,7 @@ def _embed_batch(batch: list[str]) -> list[list[float]]:
                 err = str(e).lower()
                 is_rate_limit = any(x in err for x in ("429", "rate", "quota", "resource_exhausted"))
                 if is_rate_limit and attempt < 3:
-                    wait = 2 ** attempt
+                    wait = 60
                     logfire.warning(
                         f"Gemini rate limit hit — retrying in {wait}s "
                         f"(attempt {attempt + 1}/4)."
@@ -80,7 +80,8 @@ def _embed_batch(batch: list[str]) -> list[list[float]]:
                     raise
         raise RuntimeError("Gemini rate limit persisted after 4 attempts.")
     else:
-        return _active_model.encode(batch, show_progress_bar=False).tolist()
+        logfire.info(f"Gemini failed -> falling back to sentence transformer - {_active_model}")
+        return _active_model.encode(batch, show_progress_bar=True).tolist()
 
 
 # ── Public API (same signatures as before) ─────────────────────────────────────

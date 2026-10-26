@@ -7,6 +7,7 @@ __pycache__/
 env/
 venv/
 .venv/
+.venv-spacy-test/
 genv/
 build/
 develop-eggs/
@@ -33,7 +34,7 @@ index.faiss
 metadata.pkl
 
 # Data
-
+processed_data/
 
 # IDEs
 .vscode/
