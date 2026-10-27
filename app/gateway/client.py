@@ -6,25 +6,45 @@ from app.config import settings
 
 
 # Production gateway config:
-#   - Fallback: primary @rag/llama-3.3-70b-versatile → @brag/llama-3.1-8b-instant on failure
+#   - Fallback: primary: @RAG-Gemini/gemini-3.5-flash-lite →  fallback: @RAG/qwen/qwen3.8-27b on failure
 #   - Cache: semantic mode (requires Portkey Enterprise — silently falls back to simple on free/starter)
 #   - Retry: 2 attempts on rate limit / server error before triggering the fallback target
+"""
+Used Portkey config -> 
 GATEWAY_CONFIG = {
-    "strategy": {"mode": "fallback"},
-    "cache": {"mode": "simple"},
-    "retry": {
-        "attempts": 2,
-        "on_status_codes": [429, 503]
-    },
-    "targets": [
-        {"override_params": {"model": f"@{settings.LLM_SLUG}/{settings.GEMINI_MODEL}"}},
-        {"override_params": {"model": f"@{settings.LLM_SLUG_2}/{settings.GROQ_MODEL}"}},
-    ]
+	"strategy": {
+		"mode": "fallback"
+	},
+	"cache": {
+		"mode": "simple"
+	},
+	"retry": {
+		"attempts": 2,
+		"on_status_codes": [
+			429,
+			503
+		]
+	},
+	"targets": [
+		{
+			"override_params": {
+				"model": "@RAG-Gemini/gemini-3.5-flash-lite"
+			}
+		},
+		{
+			"override_params": {
+				"model": "@RAG/qwen/qwen3.8-27b"
+			}
+		}
+	]
 }
+"""
+
+PORTKEY_CONFIG_ID = "pc-model-f29106"
 
 portkey_client = Portkey(
     api_key=settings.PORTKEY_API_KEY,
-    config=GATEWAY_CONFIG
+    config=PORTKEY_CONFIG_ID
 )
 
 
@@ -46,7 +66,7 @@ def get_langchain_llm(feature: str = "rag") -> ChatOpenAI:
         temperature=0,
         default_headers=createHeaders(
             api_key=settings.PORTKEY_API_KEY,
-            config=GATEWAY_CONFIG,
+            config=PORTKEY_CONFIG_ID,
             metadata={
                 "feature": feature,
                 "_user": "rag-system",
