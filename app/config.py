@@ -18,11 +18,14 @@ class Settings:
     GROQ_MODEL = "qwen/qwen3.8-27b"
     GROQ_FALLBACK_API_KEY = os.getenv("GROQ_FALLBACK_API_KEY")
 
+    # --- REASONING ENGINE (GEMINI) ---
+    GEMINI_MODEL = "gemini-3.5-flash-lite"
+    GEMINI_FALLBACK_API_KEY = os.getenv("GEMINI_FALLBACK_API_KEY")
+
     # --- LLM GATEWAY (PORTKEY) ---
     PORTKEY_API_KEY = os.getenv("PORTKEY_API_KEY")
-    GROQ_SLUG =  "rag"     # primary: @rag/llama-3.3-70b-versatile
-    GROQ_SLUG_2 = "brag"  # fallback: @brag/llama-3.1-8b-instant
-
+    LLM_SLUG =  "RAG-Gemini"     # primary: @RAG-Gemini/gemini-3.5-flash-lite
+    LLM_SLUG_2 = "RAG"  # fallback: @RAG/qwen/qwen3.8-27b
     
     # --- OBSERVABILITY ---
     LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "true")

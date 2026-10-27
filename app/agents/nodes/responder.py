@@ -1,6 +1,6 @@
 import logfire
 from app.agents.state import AgentState
-from app.agents.model import llm
+from app.gateway import portkey_client, extract_cache_status
 
 def generate_node(state: AgentState):
     """
@@ -57,14 +57,22 @@ def generate_node(state: AgentState):
 
     with logfire.span("✍️ LLM Synthesis"):
         try:
-            response = llm.invoke(
-                input=[{"role": "user", "content": prompt}],
+            response = portkey_client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1
             )
-            content = response.content
+            content = response.choices[0].message.content
+            cache_status = extract_cache_status(response)
+            is_cache_hit = cache_status == "HIT"
 
-            logfire.info("✅ Response synthesised via LLM.")
-            plan_update = state["plan"]
-            status = "Response generated."
+            if is_cache_hit:
+                logfire.trace(" Gateway Cache Hit - response served from Portket Cache.")
+                plan_update = state["plan"] + ["Cache : Hit"]
+                status = "Cache hit - instant response."
+            else:
+                logfire.info("✅ Response synthesised via LLM.")
+                plan_update = state["plan"]
+                status = "Response generated."
 
             return {
                 "final_answer": content,

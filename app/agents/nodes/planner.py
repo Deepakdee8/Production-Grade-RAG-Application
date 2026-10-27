@@ -1,7 +1,8 @@
 from app.agents.state import AgentState
-from app.agents.model import llm
+from app.gateway import get_langchain_llm
 import logfire
 
+llm = get_langchain_llm(feature="planner")
 
 def planner_node(state: AgentState):
     """
